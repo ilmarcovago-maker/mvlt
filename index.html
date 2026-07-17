@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d1117">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>AC Monza — Live Session Tracker</title>
+<style>
+:root{
+  --navy:#0d1117; --red:#e11d2a; --green:#16a34a;
+  --border-out:#94a3b8; --border-in:#c8d2e0;
+  --head-bg:#f1f5fb; --head-tx:#64748b;
+  --card-bg:#f0f4fb; --card-bd:#dce6f5; --card-val:#1a2a4a;
+  --ink:#1e293b; --muted:#8a97b0;
+  --amber-bg:#fefce8; --amber-tx:#78350f;
+  --blue-bg:#eff6ff; --blue-tx:#1e40af;
+  --ok-bg:#f0fdf4; --ok-tx:#15803d;
+  --bad-bg:#fff5f5; --bad-tx:#b91c1c;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:#f6f8fc; color:var(--ink); font-size:14px;
+  padding-bottom:env(safe-area-inset-bottom);
+  -webkit-user-select:none; user-select:none;
+}
+
+/* ===== TOPBAR ===== */
+.topbar{
+  background:var(--navy); color:#fff;
+  display:flex; align-items:center; gap:14px;
+  padding:10px 16px; position:sticky; top:0; z-index:50;
+}
+.topbar .logo{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--red); display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:13px;letter-spacing:.5px;
+}
+.topbar h1{font-size:15px;font-weight:800;letter-spacing:.4px}
+.topbar .sub{font-size:11px;color:#9aa4b2;font-weight:600}
+.topbar .clock{margin-left:auto;font-variant-numeric:tabular-nums;font-size:20px;font-weight:800;letter-spacing:1px}
+
+/* ===== TABS ===== */
+.tabs{
+  display:flex; background:#fff; border-bottom:2px solid var(--border-out);
+  position:sticky; top:54px; z-index:49;
+}
+.tabs button{
+  flex:1; border:none; background:none; padding:13px 0;
+  font-size:13px; font-weight:700; color:var(--head-tx);
+  border-bottom:3px solid transparent; cursor:pointer;
+}
+.tabs button.on{color:var(--red); border-bottom-color:var(--red)}
+
+.page{display:none; padding:14px; max-width:1100px; margin:0 auto}
+.page.on{display:block}
+
+/* ===== BARRA GRUPPI (sedute concorrenti) ===== */
+.grpbar{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px}
+.gpill{
+  padding:10px 16px; min-height:44px; border-radius:12px;
+  border:2px solid var(--border-out); background:#fff;
+  font-size:14px; font-weight:800; color:var(--head-tx); cursor:pointer;
+  display:flex; align-items:center; gap:8px;
+}
+.gpill.on{background:var(--navy); border-color:var(--navy); color:#fff}
+.gpill .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.gpill.add{border-style:dashed; color:var(--muted); font-weight:700}
+.chip.lock{opacity:.45; background:#f1f5f9; border-color:#e2e8f0; cursor:default}
+.chip.lock .t{color:var(--bad-tx)}
+
+/* ===== KPI CARDS ===== */
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:14px}
+.kpi{
+  background:var(--card-bg); border:1px solid var(--card-bd); border-radius:14px;
+  padding:12px 14px;
+}
+.kpi .lbl{font-size:11px; font-weight:700; color:var(--head-tx); text-transform:uppercase; letter-spacing:.5px}
+.kpi .val{font-size:26px; font-weight:800; color:var(--card-val); font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:11px; color:var(--muted); font-weight:600}
+
+/* ===== BIG BUTTONS ===== */
+.bigbtn{
+  width:100%; padding:18px; border:none; border-radius:14px;
+  font-size:17px; font-weight:800; letter-spacing:.5px; cursor:pointer;
+  min-height:56px;
+}
+.bigbtn:disabled{opacity:.35}
+.bb-green{background:var(--green); color:#fff}
+.bb-red{background:var(--red); color:#fff}
+.bb-navy{background:var(--navy); color:#fff}
+.bb-ghost{background:#fff; color:var(--ink); border:2px solid var(--border-out)}
+.btnrow{display:flex; gap:10px; margin-bottom:14px}
+.btnrow .bigbtn{flex:1}
+
+/* ===== CHIP GRID ===== */
+.chipgrid{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr));
+  gap:8px; margin-bottom:14px;
+}
+.chip{
+  padding:12px 6px; min-height:52px; border-radius:12px;
+  border:2px solid var(--border-in); background:#fff;
+  font-size:13px; font-weight:700; color:var(--head-tx);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  cursor:pointer; text-align:center; line-height:1.15;
+}
+.chip .t{font-size:9px; font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums}
+.chip.in{background:var(--green); border-color:var(--green); color:#fff}
+.chip.in .t{color:#d7f5e3}
+.chip.out{background:var(--amber-bg); border-color:#eab308; color:var(--amber-tx)}
+.chip.never{background:#fff}
+
+/* ===== PANELS ===== */
+.panel{
+  background:#fff; border:2px solid var(--border-out); border-radius:14px;
+  padding:14px; margin-bottom:14px;
+}
+.panel h2{
+  font-size:12px; font-weight:800; color:var(--head-tx);
+  text-transform:uppercase; letter-spacing:.6px; margin-bottom:10px;
+}
+.panel h2 .hint{font-weight:600; text-transform:none; letter-spacing:0; color:var(--muted)}
+
+/* ===== INPUTS ===== */
+input[type=text],input[type=date],select,textarea{
+  border:1px solid var(--border-in); border-radius:10px;
+  padding:10px 12px; font-size:14px; font-family:inherit; color:var(--ink);
+  background:#fff; width:100%;
+  -webkit-user-select:text; user-select:text;
+}
+label.f{display:block; font-size:11px; font-weight:700; color:var(--head-tx); margin:8px 0 4px; text-transform:uppercase; letter-spacing:.4px}
+.frow{display:flex; gap:10px}
+.frow>div{flex:1}
+
+/* ===== TABLES ===== */
+table{width:100%; border-collapse:collapse; border:2px solid var(--border-out); background:#fff}
+th{
+  background:var(--head-bg); color:var(--head-tx);
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px;
+  padding:8px 10px; border:1px solid var(--border-in); text-align:left;
+}
+td{padding:8px 10px; border:1px solid var(--border-in); font-size:13px; font-weight:500; font-variant-numeric:tabular-nums}
+tr.tot td{background:var(--head-bg); font-weight:800}
+.tag{display:inline-block; padding:2px 8px; border-radius:8px; font-size:11px; font-weight:700}
+.tag.g{background:var(--ok-bg); color:var(--ok-tx)}
+.tag.r{background:var(--bad-bg); color:var(--bad-tx)}
+.tag.b{background:var(--blue-bg); color:var(--blue-tx)}
+.tag.a{background:var(--amber-bg); color:var(--amber-tx)}
+
+/* ===== DRILL LIVE HEADER ===== */
+.drillhead{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  background:var(--card-bg); border:1px solid var(--card-bd); border-radius:14px;
+  padding:12px 16px; margin-bottom:12px;
+}
+.drillhead .dn{font-size:22px; font-weight:800; color:var(--card-val)}
+.drillhead .dp{font-size:12px; font-weight:700; color:var(--head-tx); font-variant-numeric:tabular-nums}
+.drillhead .dt{font-size:26px; font-weight:800; color:var(--green); font-variant-numeric:tabular-nums; margin-left:auto}
+.drillhead .dt.stop{color:var(--head-tx)}
+.drillhead.paused{background:var(--amber-bg); border-color:#eab308}
+.drillhead.paused .dt{color:var(--amber-tx)}
+.bb-amber{background:#eab308; color:#442c02}
+
+/* ===== PIANO DRILL ===== */
+.plist{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
+.prow{
+  display:flex; align-items:center; gap:10px;
+  background:#fff; border:1px solid var(--border-in); border-radius:10px; padding:8px 12px;
+}
+.prow .pn{font-size:11px; font-weight:800; color:var(--muted); width:24px}
+.prow .pt{font-weight:700; flex:1}
+.prow.done{opacity:.45}
+.prow.done .pt{text-decoration:line-through}
+.prow.next{border:2px solid var(--green); background:var(--ok-bg)}
+.prow.next .pn{color:var(--ok-tx)}
+.prow button{
+  border:none; background:var(--bad-bg); color:var(--bad-tx);
+  border-radius:8px; padding:6px 10px; font-weight:700; font-size:12px; cursor:pointer;
+}
+
+/* ===== EVENT LOG ===== */
+.evlog{max-height:180px; overflow-y:auto; font-size:12px}
+.evlog div{padding:5px 8px; border-bottom:1px solid #eef2f8; font-variant-numeric:tabular-nums}
+.evlog b.in{color:var(--ok-tx)} .evlog b.out{color:var(--bad-tx)}
+
+/* ===== ROSTER LIST ===== */
+.rlist{display:flex; flex-direction:column; gap:6px}
+.rrow{
+  display:flex; align-items:center; gap:10px;
+  background:#fff; border:1px solid var(--border-in); border-radius:10px; padding:8px 12px;
+}
+.rrow .nm{font-weight:700; flex:1}
+.rrow .rl{font-size:11px; color:var(--muted); font-weight:600; width:36px}
+.rrow button{
+  border:none; background:var(--bad-bg); color:var(--bad-tx);
+  border-radius:8px; padding:8px 12px; font-weight:700; font-size:12px; cursor:pointer;
+}
+.smallbtn{
+  border:2px solid var(--border-out); background:#fff; color:var(--ink);
+  border-radius:10px; padding:10px 14px; font-weight:700; font-size:13px; cursor:pointer;
+}
+.smallbtn.pri{background:var(--navy); border-color:var(--navy); color:#fff}
+
+.msg{
+  padding:10px 14px; border-radius:10px; margin-bottom:12px; font-weight:600; font-size:13px;
+  background:var(--blue-bg); color:var(--blue-tx); display:none;
+}
+.empty{
+  text-align:center; padding:30px 10px; color:var(--muted); font-weight:600;
+  border:2px dashed var(--border-in); border-radius:14px; margin-bottom:14px;
+}
+@media (max-width:520px){
+  .chipgrid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+  .topbar .clock{font-size:16px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">ACM</div>
+  <div>
+    <h1>LIVE SESSION TRACKER</h1>
+    <div class="sub">MV Performance — modulo campo</div>
+  </div>
+  <div class="clock" id="clock">--:--:--</div>
+</div>
+
+<div class="tabs">
+  <button id="tabLive" class="on" onclick="showTab('live')">LIVE</button>
+  <button id="tabReport" onclick="showTab('report')">REPORT</button>
+  <button id="tabRoster" onclick="showTab('roster')">ROSTER</button>
+</div>
+
+<!-- ============ LIVE ============ -->
+<div class="page on" id="pgLive">
+  <div class="msg" id="liveMsg"></div>
+
+  <div class="grpbar" id="groupBar" style="display:none"></div>
+
+  <!-- Stato seduta -->
+  <div class="kpis">
+    <div class="kpi"><div class="lbl">Seduta</div><div class="val" id="kSessTime">—</div><div class="sub" id="kSessStart">non avviata</div></div>
+    <div class="kpi"><div class="lbl">Drill</div><div class="val" id="kDrillN">0</div><div class="sub">completati</div></div>
+    <div class="kpi"><div class="lbl">Drill corrente</div><div class="val" id="kDrillTime">—</div><div class="sub" id="kDrillName">—</div></div>
+    <div class="kpi"><div class="lbl">In campo</div><div class="val" id="kInCampo">0</div><div class="sub">giocatori</div></div>
+  </div>
+
+  <!-- Setup seduta -->
+  <div class="panel" id="setupPanel">
+    <h2>Nuova seduta</h2>
+    <div class="frow">
+      <div><label class="f">Nome gruppo</label><input type="text" id="sessNome" placeholder="es. Squadra, RTP, Portieri"></div>
+      <div><label class="f">Data</label><input type="date" id="sessDate"></div>
+      <div><label class="f">Fascia</label><select id="sessAmpm"><option>AM</option><option>PM</option></select></div>
+      <div><label class="f">Tipo</label><select id="sessTipo"><option>TRAINING</option><option>MATCH</option></select></div>
+    </div>
+    <div style="height:12px"></div>
+    <div class="btnrow" style="margin-bottom:0">
+      <button class="bigbtn bb-green" id="btnStartSess" onclick="startSession()">＋ CREA SEDUTA</button>
+      <button class="bigbtn bb-ghost" id="btnAnnullaSetup" onclick="annullaSetup()" style="display:none; flex:0 0 140px">Annulla</button>
+    </div>
+  </div>
+
+  <!-- Controlli drill -->
+  <div id="drillControls" style="display:none">
+
+    <div class="drillhead" id="drillHead" style="display:none">
+      <div class="dn" id="dhName">DRILL 1</div>
+      <div class="dp" id="dhInfo"></div>
+      <div class="dt" id="dhTimer">00:00</div>
+    </div>
+
+    <!-- Pre-drill: selezione giocatori -->
+    <div class="panel" id="preDrillPanel">
+      <h2>Prossimo drill <span class="hint">— seleziona i giocatori coinvolti, poi START</span></h2>
+      <label class="f">Nome drill (opzionale)</label>
+      <input type="text" id="drillName" placeholder="es. Possesso 5v5, Torello, Partitella...">
+      <div style="height:10px"></div>
+      <div style="display:flex; gap:8px; margin-bottom:10px">
+        <button class="smallbtn" onclick="selAll(true)">Tutti</button>
+        <button class="smallbtn" onclick="selAll(false)">Nessuno</button>
+        <button class="smallbtn" onclick="selPrev()">Come drill precedente</button>
+      </div>
+      <div class="chipgrid" id="preGrid"></div>
+      <button class="bigbtn bb-green" onclick="startDrill()">▶ START DRILL</button>
+    </div>
+
+    <!-- Drill in corso -->
+    <div id="liveDrillPanel" style="display:none">
+      <div class="panel">
+        <h2>Drill in corso <span class="hint">— tocca un giocatore per registrare uscita / ingresso</span></h2>
+        <div class="chipgrid" id="liveGrid"></div>
+        <div class="frow" style="margin-bottom:10px">
+          <div><input type="text" id="noteTxt" placeholder="Nota drill (es. cambio regola, infortunio lieve...)"></div>
+          <div style="flex:0 0 auto"><button class="smallbtn pri" onclick="addNote()">＋ Nota</button></div>
+        </div>
+        <div class="btnrow" style="margin-bottom:0">
+          <button class="bigbtn bb-amber" id="btnPause" onclick="togglePause()">⏸ PAUSA</button>
+          <button class="bigbtn bb-red" onclick="stopDrill()">■ STOP DRILL</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Eventi drill</h2>
+        <div class="evlog" id="evLog"></div>
+      </div>
+    </div>
+
+    <div class="btnrow">
+      <button class="bigbtn bb-navy" id="btnStopSess" onclick="stopSession()">■■ STOP SEDUTA</button>
+    </div>
+  </div>
+
+  <!-- Piano drill -->
+  <div class="panel" id="planPanel">
+    <h2>Piano drill <span class="hint">— programmabile prima o durante la seduta</span></h2>
+    <div class="plist" id="planList"></div>
+    <div class="frow">
+      <div><input type="text" id="planName" placeholder="es. Attivazione, Torello, Possesso 5v5..."></div>
+      <div style="flex:0 0 auto"><button class="smallbtn pri" onclick="addPlan()">Aggiungi</button></div>
+    </div>
+  </div>
+
+  <!-- Drill completati (mini log) -->
+  <div class="panel" id="doneDrillsPanel" style="display:none">
+    <h2>Drill completati <span class="hint">— tocca una riga per modificare</span></h2>
+    <div id="doneDrills"></div>
+    <div id="editDrillBox" style="display:none; margin-top:12px; padding:12px; border:2px solid var(--border-out); border-radius:12px; background:var(--card-bg)">
+      <h2 id="editDrillTitle">Modifica drill</h2>
+      <div class="frow">
+        <div><label class="f">Nome drill</label><input type="text" id="edNome"></div>
+        <div style="flex:0 0 110px"><label class="f">Lungh. (m)</label><input type="text" id="edLung" inputmode="numeric"></div>
+        <div style="flex:0 0 110px"><label class="f">Largh. (m)</label><input type="text" id="edLarg" inputmode="numeric"></div>
+      </div>
+      <div style="height:10px"></div>
+      <div style="display:flex; gap:8px">
+        <button class="smallbtn pri" onclick="saveDrillEdit()">Salva</button>
+        <button class="smallbtn" onclick="closeDrillEdit()">Chiudi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ REPORT ============ -->
+<div class="page" id="pgReport">
+  <div class="panel">
+    <h2>Sessione</h2>
+    <div class="frow">
+      <div><select id="repSelect" onchange="renderReport()"></select></div>
+      <div style="flex:0 0 auto; display:flex; gap:8px">
+        <button class="smallbtn" onclick="exportJSON()">Esporta JSON</button>
+        <button class="smallbtn" onclick="exportCSV()">Esporta CSV</button>
+        <button class="smallbtn" onclick="deleteSession()">Elimina</button>
+      </div>
+    </div>
+  </div>
+  <div id="repBody"><div class="empty">Nessuna sessione salvata</div></div>
+</div>
+
+<!-- ============ ROSTER ============ -->
+<div class="page" id="pgRoster">
+  <div class="panel">
+    <h2>Aggiungi giocatore</h2>
+    <div class="frow">
+      <div><input type="text" id="rosterName" placeholder="NICKNAME (es. ROSSI)"></div>
+      <div style="flex:0 0 90px"><input type="text" id="rosterRole" placeholder="Ruolo" maxlength="3"></div>
+      <div style="flex:0 0 auto"><button class="smallbtn pri" onclick="addPlayer()">Aggiungi</button></div>
+    </div>
+    <label class="f">Import rapido — un nickname per riga (opz. ;ruolo)</label>
+    <textarea id="rosterBulk" rows="3" placeholder="ROSSI;DC&#10;BIANCHI;ATT&#10;VERDI"></textarea>
+    <div style="height:8px"></div>
+    <button class="smallbtn" onclick="bulkImport()">Importa lista</button>
+  </div>
+  <div class="panel">
+    <h2>Roster attivo <span class="hint" id="rosterCount"></span></h2>
+    <div class="rlist" id="rosterList"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ================== STATE ================== */
+var LS_ROSTER='mvlt_roster', LS_SESSIONS='mvlt_sessions', LS_ACTIVE='mvlt_active', LS_PLAN='mvlt_plan';
+var planDraft=[];     // piano pre-seduta (nomi drill in ordine)
+var roster=[];        // [{n:nickname, r:ruolo}]
+var SL=[];            // sedute attive concorrenti (gruppi)
+var cur=-1;           // indice gruppo corrente in SL
+var S=null;           // sessione corrente = SL[cur]: {nome,data,ampm,tipo,start,stop,drills:[],plan:[],preSel:{}}
+                      // drill: {nome,start,stop,initial:[],events:[{p,type,ts}],pauses:[],notes:[{ts,txt}]}
+var liveDrill=null;   // drill in corso della sessione corrente
+var preSel={};        // riferimento a S.preSel
+
+function load(k,d){ try{var v=localStorage.getItem(k); return v?JSON.parse(v):d;}catch(e){return d;} }
+function save(k,v){ localStorage.setItem(k,JSON.stringify(v)); }
+function now(){ return Date.now(); }
+function pad(n){ return (n<10?'0':'')+n; }
+function hms(ts){ var d=new Date(ts); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
+function hm(ts){ var d=new Date(ts); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+function dur(ms){ var s=Math.floor(ms/1000); return pad(Math.floor(s/60))+':'+pad(s%60); }
+function durMin(ms){ return Math.round(ms/6000)/10; } // minuti con 1 decimale
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ================== INIT ================== */
+roster=load(LS_ROSTER,[]);
+var _act=load(LS_ACTIVE,null); // recupero sessioni dopo refresh/crash Safari
+if(_act){
+  if(_act.list){ SL=_act.list; cur=(_act.cur!=null&&_act.cur<SL.length)?_act.cur:0; }
+  else if(_act.drills){ _act.nome=_act.nome||'Squadra'; SL=[_act]; cur=0; } // formato vecchio
+}
+document.getElementById('sessDate').value=new Date().toISOString().slice(0,10);
+
+if(SL.length){
+  S=SL[cur]; preSel=S.preSel||(S.preSel={});
+  syncLiveDrill(); enterSessionUI();
+  flash('Sessioni ripristinate dopo ricarica pagina');
+}
+
+planDraft=load(LS_PLAN,[]);
+setInterval(tick,1000); tick();
+renderRoster(); renderRepSelect(); renderReport(); renderPlan();
+
+/* ================== CLOCK / TIMERS ================== */
+function tick(){
+  document.getElementById('clock').textContent=hms(now());
+  if(S&&S.start&&!S.stop){
+    document.getElementById('kSessTime').textContent=dur(now()-S.start);
+    document.getElementById('kSessStart').textContent='start '+hm(S.start);
+  } else if(S&&!S.start){
+    document.getElementById('kSessTime').textContent='—';
+    document.getElementById('kSessStart').textContent='al 1° drill';
+  }
+  if(liveDrill){
+    var t=dur(now()-liveDrill.start);
+    document.getElementById('kDrillTime').textContent=t;
+    document.getElementById('dhTimer').textContent=t;
+    var np=(liveDrill.pauses||[]).length;
+    document.getElementById('dhInfo').textContent='Rip '+(np+1)+' · Pause '+(np?dur(pauseMs(liveDrill)):'00:00');
+  }
+}
+function flash(msg){
+  var el=document.getElementById('liveMsg');
+  el.textContent=msg; el.style.display='block';
+  setTimeout(function(){ el.style.display='none'; },3000);
+}
+
+/* ================== TABS ================== */
+function showTab(t){
+  ['live','report','roster'].forEach(function(x){
+    document.getElementById('pg'+x.charAt(0).toUpperCase()+x.slice(1)).classList.toggle('on',x===t);
+    document.getElementById('tab'+x.charAt(0).toUpperCase()+x.slice(1)).classList.toggle('on',x===t);
+  });
+  if(t==='report'){ renderRepSelect(); renderReport(); }
+  if(t==='roster'){ renderRoster(); }
+}
+
+/* ================== MULTI-SESSIONE ================== */
+function saveActive(){
+  if(SL.length){ save(LS_ACTIVE,{list:SL,cur:cur}); } else { localStorage.removeItem(LS_ACTIVE); }
+}
+function syncLiveDrill(){
+  liveDrill=null;
+  if(S){ S.drills.forEach(function(d){ if(!d.stop) liveDrill=d; }); }
+}
+function enterSessionUI(){
+  closeDrillEdit();
+  document.getElementById('setupPanel').style.display='none';
+  document.getElementById('drillControls').style.display='block';
+  if(liveDrill){ showLiveDrill(); }
+  else {
+    renderPreGrid();
+    document.getElementById('kDrillTime').textContent='—';
+    document.getElementById('kDrillName').textContent='—';
+    document.getElementById('kInCampo').textContent='0';
+  }
+  renderDoneDrills(); renderGroupBar();
+}
+function renderGroupBar(){
+  var bar=document.getElementById('groupBar'); bar.innerHTML='';
+  if(!SL.length){ bar.style.display='none'; return; }
+  bar.style.display='flex';
+  SL.forEach(function(s,i){
+    var p=document.createElement('div');
+    p.className='gpill'+(i===cur?' on':'');
+    var hasLive=s.drills.some(function(d){ return !d.stop; });
+    p.innerHTML=(hasLive?'<span class="dot"></span>':'')+esc(s.nome);
+    p.onclick=function(){ switchGroup(i); };
+    bar.appendChild(p);
+  });
+  var add=document.createElement('div');
+  add.className='gpill add'; add.textContent='＋ Gruppo';
+  add.onclick=newGroup;
+  bar.appendChild(add);
+}
+function switchGroup(i){
+  if(i===cur||i<0||i>=SL.length) return;
+  cur=i; S=SL[i]; preSel=S.preSel||(S.preSel={});
+  syncLiveDrill(); saveActive(); enterSessionUI();
+}
+function newGroup(){
+  document.getElementById('setupPanel').style.display='block';
+  document.getElementById('drillControls').style.display='none';
+  document.getElementById('doneDrillsPanel').style.display='none';
+  document.getElementById('btnAnnullaSetup').style.display='block';
+}
+function annullaSetup(){
+  document.getElementById('btnAnnullaSetup').style.display='none';
+  if(SL.length){ enterSessionUI(); }
+}
+function lockedBy(nick){
+  // gruppo (diverso dal corrente) che ha già coinvolto o flaggato il giocatore
+  for(var i=0;i<SL.length;i++){
+    if(i===cur) continue;
+    var s=SL[i];
+    if(s.preSel&&s.preSel[nick]) return s.nome;
+    for(var j=0;j<s.drills.length;j++){
+      var d=s.drills[j];
+      if(d.initial.indexOf(nick)>=0) return s.nome;
+      for(var k=0;k<d.events.length;k++){ if(d.events[k].p===nick) return s.nome; }
+    }
+  }
+  return null;
+}
+
+/* ================== PIANO DRILL ================== */
+function getPlan(){ return S?S.plan:planDraft; }
+function savePlan(){ if(S){ saveActive(); } else { save(LS_PLAN,planDraft); } }
+function renderPlan(){
+  var el=document.getElementById('planList'); el.innerHTML='';
+  var plan=getPlan();
+  var done=S?S.drills.filter(function(d){return d.stop;}).length:0;
+  if(!plan.length){ el.innerHTML='<div style="color:var(--muted);font-weight:600;font-size:13px">Nessun drill programmato</div>'; return; }
+  plan.forEach(function(name,i){
+    var d=document.createElement('div');
+    d.className='prow'+(i<done?' done':(i===done?' next':''));
+    d.innerHTML='<span class="pn">'+(i+1)+'</span><span class="pt">'+esc(name)+'</span>';
+    if(i>=done){
+      var b=document.createElement('button'); b.textContent='×';
+      b.onclick=function(){ plan.splice(i,1); savePlan(); renderPlan(); prefillDrillName(); };
+      d.appendChild(b);
+    }
+    el.appendChild(d);
+  });
+}
+function addPlan(){
+  var v=document.getElementById('planName').value.trim();
+  if(!v) return;
+  getPlan().push(v); savePlan();
+  document.getElementById('planName').value='';
+  renderPlan(); prefillDrillName();
+}
+function prefillDrillName(){
+  var inp=document.getElementById('drillName');
+  if(!S||liveDrill||!inp) return;
+  var next=S.plan[S.drills.filter(function(d){return d.stop;}).length];
+  if(next && !inp.value.trim()) inp.value=next;
+}
+
+/* ================== SESSIONE ================== */
+function startSession(){
+  if(!roster.length){ flash('Roster vuoto — aggiungi giocatori nel tab ROSTER'); return; }
+  var nome=document.getElementById('sessNome').value.trim();
+  if(!nome){
+    if(SL.length){ flash('Dai un nome al gruppo (es. RTP, Portieri)'); return; }
+    nome='Squadra';
+  }
+  if(SL.some(function(x){ return x.nome.toUpperCase()===nome.toUpperCase(); })){ flash('Nome gruppo già in uso'); return; }
+  S={
+    nome:nome,
+    data:document.getElementById('sessDate').value,
+    ampm:document.getElementById('sessAmpm').value,
+    tipo:document.getElementById('sessTipo').value,
+    start:null, stop:null, drills:[], plan:planDraft.slice(), preSel:{}
+  };
+  SL.push(S); cur=SL.length-1;
+  preSel=S.preSel; liveDrill=null;
+  planDraft=[]; save(LS_PLAN,planDraft);
+  saveActive();
+  document.getElementById('sessNome').value='';
+  document.getElementById('btnAnnullaSetup').style.display='none';
+  document.getElementById('kSessTime').textContent='—';
+  document.getElementById('kSessStart').textContent='al 1° drill';
+  enterSessionUI();
+}
+function stopSession(){
+  if(!S.start){
+    if(!confirm('Nessun drill registrato: il gruppo "'+S.nome+'" verrà eliminato senza salvataggio. Confermi?')) return;
+    SL.splice(cur,1); saveActive();
+    afterStop(null);
+    return;
+  }
+  var msg='Confermi STOP gruppo "'+S.nome+'"?';
+  if(liveDrill){ if(!confirm('Drill in corso: verrà chiuso. '+msg)) return; stopDrill(); }
+  else if(!confirm(msg)) return;
+  S.stop=now();
+  delete S.preSel; // non serve nello storico
+  var sessions=load(LS_SESSIONS,[]);
+  sessions.unshift(S);
+  save(LS_SESSIONS,sessions);
+  var done=S;
+  SL.splice(cur,1);
+  saveActive();
+  flash('Seduta salvata: '+done.nome+' '+done.data+' '+done.ampm+' — '+done.drills.length+' drill');
+  renderRepSelect();
+  afterStop(done);
+}
+function afterStop(done){
+  if(SL.length){
+    cur=0; S=SL[0]; preSel=S.preSel||(S.preSel={});
+    syncLiveDrill(); saveActive(); enterSessionUI();
+  } else {
+    cur=-1; S=null; liveDrill=null;
+    document.getElementById('setupPanel').style.display='block';
+    document.getElementById('drillControls').style.display='none';
+    document.getElementById('doneDrillsPanel').style.display='none';
+    document.getElementById('kSessTime').textContent='—';
+    document.getElementById('kSessStart').textContent='non avviata';
+    document.getElementById('kDrillN').textContent='0';
+    document.getElementById('kDrillTime').textContent='—';
+    document.getElementById('kDrillName').textContent='—';
+    document.getElementById('kInCampo').textContent='0';
+    renderGroupBar();
+  }
+}
+
+/* ================== PRE-DRILL ================== */
+function renderPreGrid(){
+  document.getElementById('preDrillPanel').style.display='block';
+  document.getElementById('liveDrillPanel').style.display='none';
+  document.getElementById('drillHead').style.display='none';
+  document.getElementById('drillName').value='';
+  prefillDrillName(); renderPlan();
+  var g=document.getElementById('preGrid'); g.innerHTML='';
+  roster.forEach(function(p){
+    var c=document.createElement('div');
+    var lk=lockedBy(p.n);
+    if(lk){
+      c.className='chip lock';
+      c.innerHTML='<span>'+esc(p.n)+'</span><span class="t">'+esc(lk)+'</span>';
+      delete preSel[p.n];
+    } else {
+      c.className='chip'+(preSel[p.n]?' in':'');
+      c.innerHTML='<span>'+esc(p.n)+'</span>'+(p.r?'<span class="t">'+esc(p.r)+'</span>':'');
+      c.onclick=function(){ preSel[p.n]=!preSel[p.n]; c.classList.toggle('in',!!preSel[p.n]); saveActive(); };
+    }
+    g.appendChild(c);
+  });
+}
+function selAll(v){ roster.forEach(function(p){ preSel[p.n]=v; }); renderPreGrid(); }
+function selPrev(){
+  if(!S||!S.drills.length){ flash('Nessun drill precedente'); return; }
+  var prev=S.drills[S.drills.length-1];
+  preSel={};
+  // chi era in campo a fine drill precedente
+  inCampoAtEnd(prev).forEach(function(n){ preSel[n]=true; });
+  renderPreGrid();
+}
+function inCampoAtEnd(drill){
+  var st={}; drill.initial.forEach(function(n){ st[n]=true; });
+  drill.events.forEach(function(e){ st[e.p]=(e.type==='in'); });
+  return Object.keys(st).filter(function(n){ return st[n]; });
+}
+
+/* ================== DRILL ================== */
+function startDrill(){
+  var sel=Object.keys(preSel).filter(function(n){ return preSel[n]; });
+  if(!sel.length){ flash('Seleziona almeno un giocatore'); return; }
+  liveDrill={
+    nome:document.getElementById('drillName').value.trim()||('Drill '+(S.drills.length+1)),
+    start:now(), stop:null, initial:sel.slice(), events:[], pauses:[], notes:[]
+  };
+  S.drills.push(liveDrill);
+  if(!S.start) S.start=liveDrill.start; // inizio seduta = start del 1° drill
+  saveActive();
+  showLiveDrill();
+}
+function showLiveDrill(){
+  document.getElementById('preDrillPanel').style.display='none';
+  document.getElementById('liveDrillPanel').style.display='block';
+  document.getElementById('drillHead').style.display='flex';
+  document.getElementById('dhName').textContent=liveDrill.nome.toUpperCase();
+  document.getElementById('dhTimer').classList.remove('stop');
+  document.getElementById('kDrillName').textContent=liveDrill.nome;
+  renderLiveGrid(); renderEvLog(); renderPauseState(); renderGroupBar();
+}
+function openPause(){
+  if(!liveDrill||!liveDrill.pauses) return null;
+  var last=liveDrill.pauses[liveDrill.pauses.length-1];
+  return (last&&!last.stop)?last:null;
+}
+function togglePause(){
+  if(!liveDrill.pauses) liveDrill.pauses=[];
+  var p=openPause();
+  if(p){ p.stop=now(); } else { liveDrill.pauses.push({start:now(), stop:null}); }
+  saveActive();
+  renderPauseState();
+}
+function renderPauseState(){
+  var paused=!!openPause();
+  document.getElementById('btnPause').textContent=paused?'▶ RIPRENDI':'⏸ PAUSA';
+  document.getElementById('drillHead').classList.toggle('paused',paused);
+  document.getElementById('dhName').textContent=liveDrill.nome.toUpperCase()+(paused?' — IN PAUSA':'');
+}
+function playerState(nick){
+  // stato attuale nel drill live: 'in' | 'out' | 'never'
+  var st=liveDrill.initial.indexOf(nick)>=0?'in':'never';
+  liveDrill.events.forEach(function(e){ if(e.p===nick) st=(e.type==='in')?'in':'out'; });
+  return st;
+}
+function renderLiveGrid(){
+  var g=document.getElementById('liveGrid'); g.innerHTML='';
+  var nIn=0;
+  roster.forEach(function(p){
+    var st=playerState(p.n);
+    if(st==='in') nIn++;
+    var c=document.createElement('div');
+    var lk=(st==='never')?lockedBy(p.n):null;
+    if(lk){
+      c.className='chip lock';
+      c.innerHTML='<span>'+esc(p.n)+'</span><span class="t">'+esc(lk)+'</span>';
+    } else {
+      c.className='chip '+st;
+      var lastTs=null;
+      liveDrill.events.forEach(function(e){ if(e.p===p.n) lastTs=e.ts; });
+      var sub=st==='in'?(lastTs?'in '+hm(lastTs):'dal via'):(st==='out'?'out '+hm(lastTs):'');
+      c.innerHTML='<span>'+esc(p.n)+'</span><span class="t">'+sub+'</span>';
+      c.onclick=function(){ toggleLive(p.n); };
+    }
+    g.appendChild(c);
+  });
+  document.getElementById('kInCampo').textContent=nIn;
+}
+function toggleLive(nick){
+  var st=playerState(nick);
+  liveDrill.events.push({p:nick, type:(st==='in'?'out':'in'), ts:now()});
+  saveActive();
+  renderLiveGrid(); renderEvLog();
+}
+function addNote(){
+  var inp=document.getElementById('noteTxt');
+  var txt=inp.value.trim();
+  if(!txt||!liveDrill) return;
+  if(!liveDrill.notes) liveDrill.notes=[];
+  liveDrill.notes.push({ts:now(), txt:txt});
+  saveActive();
+  inp.value='';
+  renderEvLog();
+}
+function renderEvLog(){
+  var el=document.getElementById('evLog'); el.innerHTML='';
+  var items=[];
+  liveDrill.events.forEach(function(e){
+    items.push({ts:e.ts, html:hms(e.ts)+' — <b class="'+e.type+'">'+(e.type==='in'?'IN':'OUT')+'</b> '+esc(e.p)});
+  });
+  (liveDrill.notes||[]).forEach(function(n){
+    items.push({ts:n.ts, html:hms(n.ts)+' — <b style="color:var(--blue-tx)">NOTA</b> '+esc(n.txt)});
+  });
+  if(!items.length){ el.innerHTML='<div style="color:var(--muted)">Nessun evento</div>'; return; }
+  items.sort(function(a,b){ return b.ts-a.ts; });
+  items.forEach(function(it){
+    var d=document.createElement('div');
+    d.innerHTML=it.html;
+    el.appendChild(d);
+  });
+}
+function stopDrill(){
+  var p=openPause(); if(p) p.stop=now();
+  liveDrill.stop=now();
+  saveActive();
+  document.getElementById('kDrillN').textContent=S.drills.filter(function(d){return d.stop;}).length;
+  document.getElementById('kDrillTime').textContent='—';
+  document.getElementById('kDrillName').textContent='—';
+  document.getElementById('kInCampo').textContent='0';
+  liveDrill=null;
+  renderPreGrid(); renderDoneDrills(); renderGroupBar();
+}
+function renderDoneDrills(){
+  var done=S?S.drills.filter(function(d){return d.stop;}):[];
+  var panel=document.getElementById('doneDrillsPanel');
+  if(!done.length){ panel.style.display='none'; return; }
+  panel.style.display='block';
+  document.getElementById('kDrillN').textContent=done.length;
+  var h='<table><tr><th>#</th><th>Drill</th><th>Start</th><th>Stop</th><th>Netta</th><th>Rip</th><th>Pause</th><th>Campo</th><th>Gioc</th><th>Cambi</th></tr>';
+  done.forEach(function(d,i){
+    var np=(d.pauses||[]).length, pms=pauseMs(d);
+    var campo=(d.lung||d.larg)?((d.lung||'?')+'×'+(d.larg||'?')):'—';
+    h+='<tr style="cursor:pointer" onclick="editDrill('+i+')"><td>'+(i+1)+'</td><td><b>'+esc(d.nome)+'</b></td><td>'+hm(d.start)+'</td><td>'+hm(d.stop)+'</td><td>'+dur(d.stop-d.start-pms)+'</td><td>'+(np+1)+'</td><td>'+(np?dur(pms):'—')+'</td><td>'+campo+'</td><td>'+d.initial.length+'</td><td>'+d.events.length+'</td></tr>';
+  });
+  document.getElementById('doneDrills').innerHTML=h+'</table>';
+}
+var _editIdx=-1;
+function editDrill(i){
+  var done=S.drills.filter(function(d){return d.stop;});
+  var d=done[i]; if(!d) return;
+  _editIdx=S.drills.indexOf(d);
+  document.getElementById('editDrillTitle').textContent='Modifica drill '+(i+1);
+  document.getElementById('edNome').value=d.nome;
+  document.getElementById('edLung').value=d.lung||'';
+  document.getElementById('edLarg').value=d.larg||'';
+  document.getElementById('editDrillBox').style.display='block';
+}
+function saveDrillEdit(){
+  var d=S.drills[_editIdx]; if(!d) return;
+  var nome=document.getElementById('edNome').value.trim();
+  if(nome) d.nome=nome;
+  d.lung=document.getElementById('edLung').value.trim();
+  d.larg=document.getElementById('edLarg').value.trim();
+  saveActive();
+  closeDrillEdit();
+  renderDoneDrills();
+}
+function closeDrillEdit(){
+  _editIdx=-1;
+  document.getElementById('editDrillBox').style.display='none';
+}
+
+/* ================== CALCOLO MINUTI EFFETTIVI ================== */
+function playerMinutes(drill){
+  // ritorna {nick: ms_effettivi} per il drill — pause sottratte
+  var iv={}, open={}, end=drill.stop||now();
+  drill.initial.forEach(function(n){ open[n]=drill.start; iv[n]=[]; });
+  drill.events.forEach(function(e){
+    if(e.type==='out' && open[e.p]!=null){ iv[e.p].push([open[e.p],e.ts]); open[e.p]=null; }
+    if(e.type==='in' && open[e.p]==null){ if(!iv[e.p]) iv[e.p]=[]; open[e.p]=e.ts; }
+  });
+  Object.keys(open).forEach(function(n){ if(open[n]!=null) iv[n].push([open[n],end]); });
+  var pauses=(drill.pauses||[]).map(function(p){ return [p.start, p.stop||end]; });
+  var res={};
+  Object.keys(iv).forEach(function(n){
+    var ms=0;
+    iv[n].forEach(function(seg){
+      ms+=seg[1]-seg[0];
+      pauses.forEach(function(pz){ ms-=Math.max(0, Math.min(seg[1],pz[1])-Math.max(seg[0],pz[0])); });
+    });
+    res[n]=ms;
+  });
+  return res;
+}
+function pauseMs(drill){
+  var end=drill.stop||now(), t=0;
+  (drill.pauses||[]).forEach(function(p){ t+=(p.stop||end)-p.start; });
+  return t;
+}
+
+/* ================== REPORT ================== */
+function getSessions(){ return load(LS_SESSIONS,[]); }
+function renderRepSelect(){
+  var sel=document.getElementById('repSelect'); var cur=sel.value;
+  var sessions=getSessions(); sel.innerHTML='';
+  sessions.forEach(function(s,i){
+    var o=document.createElement('option'); o.value=i;
+    o.textContent=(s.nome||'Squadra')+' — '+s.data+' '+s.ampm+' — '+s.tipo+' — '+s.drills.length+' drill ('+hm(s.start)+'-'+hm(s.stop)+')';
+    sel.appendChild(o);
+  });
+  if(cur && sel.querySelector('option[value="'+cur+'"]')) sel.value=cur;
+}
+function curSession(){
+  var sessions=getSessions(); var i=+document.getElementById('repSelect').value;
+  return sessions[i]||null;
+}
+function renderReport(){
+  var s=curSession(); var el=document.getElementById('repBody');
+  if(!s){ el.innerHTML='<div class="empty">Nessuna sessione salvata</div>'; return; }
+
+  var h='';
+  // KPI seduta
+  h+='<div class="kpis">';
+  h+='<div class="kpi"><div class="lbl">'+esc(s.nome||'Squadra')+'</div><div class="val" style="font-size:18px">'+esc(s.data)+'</div><div class="sub">'+esc(s.ampm)+' · '+esc(s.tipo)+'</div></div>';
+  h+='<div class="kpi"><div class="lbl">Durata seduta</div><div class="val">'+dur(s.stop-s.start)+'</div><div class="sub">'+hm(s.start)+' → '+hm(s.stop)+'</div></div>';
+  h+='<div class="kpi"><div class="lbl">Drill</div><div class="val">'+s.drills.length+'</div><div class="sub">esercitazioni</div></div>';
+  var totCambi=0; s.drills.forEach(function(d){ totCambi+=d.events.length; });
+  h+='<div class="kpi"><div class="lbl">Cambi</div><div class="val">'+totCambi+'</div><div class="sub">eventi in/out</div></div>';
+  h+='</div>';
+
+  // Tabella drill
+  h+='<div class="panel"><h2>Drill</h2><div style="overflow-x:auto"><table>';
+  h+='<tr><th>#</th><th>Drill</th><th>Start</th><th>Stop</th><th>Lorda</th><th>Netta</th><th>Rip</th><th>Campo</th><th>Pause (taglio)</th><th>Giocatori iniziali</th><th>Cambi</th><th>Note</th></tr>';
+  s.drills.forEach(function(d,i){
+    var ev=d.events.map(function(e){ return hm(e.ts)+' '+(e.type==='in'?'▲':'▼')+' '+e.p; }).join('<br>');
+    var pz=(d.pauses||[]).map(function(p){ return hms(p.start)+' → '+hms(p.stop||d.stop); }).join('<br>');
+    var nt=(d.notes||[]).map(function(n){ return hms(n.ts)+' '+esc(n.txt); }).join('<br>');
+    var pms=pauseMs(d), np=(d.pauses||[]).length;
+    var campo=(d.lung||d.larg)?(esc(d.lung||'?')+'×'+esc(d.larg||'?')):'—';
+    h+='<tr><td>'+(i+1)+'</td><td><b>'+esc(d.nome)+'</b></td><td>'+hms(d.start)+'</td><td>'+hms(d.stop)+'</td><td>'+dur(d.stop-d.start)+'</td>';
+    h+='<td><b>'+dur(d.stop-d.start-pms)+'</b></td><td>'+(np+1)+'</td><td>'+campo+'</td><td>'+(pz||'—')+'</td>';
+    h+='<td>'+d.initial.map(esc).join(', ')+'</td><td>'+(ev||'—')+'</td><td>'+(nt||'—')+'</td></tr>';
+  });
+  h+='</table></div></div>';
+
+  // Matrice atleta × drill (minuti effettivi)
+  var players={};
+  s.drills.forEach(function(d){
+    var pm=playerMinutes(d);
+    Object.keys(pm).forEach(function(n){ if(!players[n]) players[n]={}; players[n][s.drills.indexOf(d)]=pm[n]; });
+  });
+  var names=Object.keys(players).sort();
+  h+='<div class="panel"><h2>Minuti effettivi per atleta <span class="hint">— tempo reale in campo (cambi inclusi)</span></h2><div style="overflow-x:auto"><table>';
+  h+='<tr><th>Atleta</th>';
+  s.drills.forEach(function(d,i){ h+='<th>D'+(i+1)+'<br><span style="font-weight:600;text-transform:none">'+esc(d.nome.slice(0,14))+'</span></th>'; });
+  h+='<th>TOT</th><th>Drill</th></tr>';
+  names.forEach(function(n){
+    var tot=0, nd=0;
+    h+='<tr><td><b>'+esc(n)+'</b></td>';
+    s.drills.forEach(function(d,i){
+      var v=players[n][i];
+      if(v!=null&&v>0){ tot+=v; nd++; h+='<td>'+durMin(v)+'\u2032</td>'; } else { h+='<td style="color:#cbd5e1">—</td>'; }
+    });
+    h+='<td><b>'+durMin(tot)+'\u2032</b></td><td>'+nd+'/'+s.drills.length+'</td></tr>';
+  });
+  h+='</table></div></div>';
+
+  el.innerHTML=h;
+}
+function deleteSession(){
+  var sel=document.getElementById('repSelect');
+  if(sel.value===''){ return; }
+  if(!confirm('Eliminare definitivamente questa sessione?')) return;
+  var sessions=getSessions(); sessions.splice(+sel.value,1);
+  save(LS_SESSIONS,sessions);
+  renderRepSelect(); renderReport();
+}
+
+/* ================== EXPORT ================== */
+function download(name, content, mime){
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download=name; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); },2000);
+}
+function exportJSON(){
+  var s=curSession(); if(!s){ return; }
+  download('seduta_'+(s.nome||'Squadra')+'_'+s.data+'_'+s.ampm+'.json', JSON.stringify(s,null,2), 'application/json');
+}
+function exportCSV(){
+  var s=curSession(); if(!s){ return; }
+  var rows=[['gruppo','data','ampm','tipo','drill_n','drill_nome','drill_start','drill_stop','durata_lorda_min','durata_netta_min','n_ripetizioni','n_pause','pause_min','pause_orari','lunghezza','larghezza','note_drill','atleta','minuti_effettivi','cambi_atleta']];
+  s.drills.forEach(function(d,i){
+    var pm=playerMinutes(d), pms=pauseMs(d), np=(d.pauses||[]).length;
+    var pz=(d.pauses||[]).map(function(p){ return hms(p.start)+'-'+hms(p.stop||d.stop); }).join(' | ');
+    var nt=(d.notes||[]).map(function(n){ return hms(n.ts)+' '+n.txt; }).join(' | ');
+    Object.keys(pm).forEach(function(n){
+      var nc=d.events.filter(function(e){ return e.p===n; }).length;
+      rows.push([s.nome||'Squadra',s.data,s.ampm,s.tipo,i+1,d.nome,hms(d.start),hms(d.stop),durMin(d.stop-d.start),durMin(d.stop-d.start-pms),np+1,np,durMin(pms),pz,d.lung||'',d.larg||'',nt,n,durMin(pm[n]),nc]);
+    });
+  });
+  var csv=rows.map(function(r){ return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(';'); }).join('\r\n');
+  download('seduta_'+(s.nome||'Squadra')+'_'+s.data+'_'+s.ampm+'.csv', '\uFEFF'+csv, 'text/csv;charset=utf-8');
+}
+
+/* ================== ROSTER ================== */
+function renderRoster(){
+  var el=document.getElementById('rosterList'); el.innerHTML='';
+  document.getElementById('rosterCount').textContent='— '+roster.length+' giocatori';
+  if(!roster.length){ el.innerHTML='<div class="empty">Roster vuoto — aggiungi giocatori o usa import rapido</div>'; return; }
+  roster.forEach(function(p,i){
+    var d=document.createElement('div'); d.className='rrow';
+    d.innerHTML='<span class="rl">'+esc(p.r||'')+'</span><span class="nm">'+esc(p.n)+'</span>';
+    var b=document.createElement('button'); b.textContent='Rimuovi';
+    b.onclick=function(){
+      if(S){ flash('Non modificare il roster con seduta in corso'); return; }
+      roster.splice(i,1); save(LS_ROSTER,roster); renderRoster();
+    };
+    d.appendChild(b); el.appendChild(d);
+  });
+}
+function addPlayer(){
+  var n=document.getElementById('rosterName').value.trim().toUpperCase();
+  var r=document.getElementById('rosterRole').value.trim().toUpperCase();
+  if(!n) return;
+  if(roster.some(function(p){ return p.n===n; })){ flash('Giocatore già presente'); return; }
+  roster.push({n:n, r:r});
+  roster.sort(function(a,b){ return a.n<b.n?-1:1; });
+  save(LS_ROSTER,roster);
+  document.getElementById('rosterName').value=''; document.getElementById('rosterRole').value='';
+  renderRoster();
+}
+function bulkImport(){
+  var lines=document.getElementById('rosterBulk').value.split('\n');
+  var added=0;
+  lines.forEach(function(l){
+    l=l.trim(); if(!l) return;
+    var parts=l.split(';');
+    var n=parts[0].trim().toUpperCase(), r=(parts[1]||'').trim().toUpperCase();
+    if(!n||roster.some(function(p){ return p.n===n; })) return;
+    roster.push({n:n, r:r}); added++;
+  });
+  roster.sort(function(a,b){ return a.n<b.n?-1:1; });
+  save(LS_ROSTER,roster);
+  document.getElementById('rosterBulk').value='';
+  flash(added+' giocatori importati');
+  renderRoster();
+}
+/* ================== PWA ================== */
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+</body>
+</html>
